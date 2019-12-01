@@ -1,16 +1,10 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
-
-admin.initializeApp();
-// // Create and Deploy Your First Cloud Functions
-// // https://firebase.google.com/docs/functions/write-firebase-functions
-//
-exports.helloWorld = functions.https.onRequest((request, response) => {
-	response.send('Hello from Firebase!');
-});
+const express = require('express');
+const app = express();
 
 // get from database
-exports.getScreams = functions.https.onRequest((req, res) => {
+app.get('/screams', (req, res) => {
 	admin
 		.firestore()
 		.collection('screams')
@@ -25,8 +19,16 @@ exports.getScreams = functions.https.onRequest((req, res) => {
 		.catch((err) => console.error(err));
 });
 
+admin.initializeApp();
+// // Create and Deploy Your First Cloud Functions
+// // https://firebase.google.com/docs/functions/write-firebase-functions
+//
+
 // create scream
 exports.createScream = functions.https.onRequest((req, res) => {
+	if (req.method != 'POST') {
+		res.status(400).json({ error: 'Method not allowed.' });
+	}
 	const newScream = {
 		body: req.body.body,
 		user_handle: req.body.user_handle,
@@ -46,3 +48,5 @@ exports.createScream = functions.https.onRequest((req, res) => {
 			console.error(err);
 		});
 });
+
+exports.api = functions.https.onRequest(app);
