@@ -9,11 +9,15 @@ app.get('/screams', (req, res) => {
 	admin
 		.firestore()
 		.collection('screams')
+		.orderBy('created_at', 'desc')
 		.get()
 		.then((querySnapshot) => {
 			let screams = [];
 			querySnapshot.forEach((doc) => {
-				screams.push(doc.data());
+				screams.push({
+					screamID: doc.id,
+					...doc.data()
+				});
 			});
 			res.json(screams);
 		})
