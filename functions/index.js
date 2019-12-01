@@ -2,6 +2,7 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const express = require('express');
 const app = express();
+admin.initializeApp();
 
 // get from database
 app.get('/screams', (req, res) => {
@@ -19,16 +20,12 @@ app.get('/screams', (req, res) => {
 		.catch((err) => console.error(err));
 });
 
-admin.initializeApp();
 // // Create and Deploy Your First Cloud Functions
 // // https://firebase.google.com/docs/functions/write-firebase-functions
 //
 
 // create scream
-exports.createScream = functions.https.onRequest((req, res) => {
-	if (req.method != 'POST') {
-		res.status(400).json({ error: 'Method not allowed.' });
-	}
+app.post('/scream', (req, res) => {
 	const newScream = {
 		body: req.body.body,
 		user_handle: req.body.user_handle,
