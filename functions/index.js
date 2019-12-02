@@ -1,8 +1,24 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
-const express = require('express');
-const app = express();
+const app = require('express')();
+
 admin.initializeApp();
+
+const firebaseConfig = {
+	apiKey: 'AIzaSyBpQ9plexYxOSCGXQ02oDNK2dQ16nSlBOg',
+	authDomain: 'social-media-clone-70837.firebaseapp.com',
+	databaseURL: 'https://social-media-clone-70837.firebaseio.com',
+	projectId: 'social-media-clone-70837',
+	storageBucket: 'social-media-clone-70837.appspot.com',
+	messagingSenderId: '396771421612',
+	appId: '1:396771421612:web:0458b058a3082de4531e09',
+	measurementId: 'G-X0CDK7678K'
+};
+
+const firebase = require('firebase');
+firebase.initializeApp(firebaseConfig);
+
+const db = admin.firestore();
 
 // get from database
 app.get('/screams', (req, res) => {
@@ -50,4 +66,46 @@ app.post('/scream', (req, res) => {
 		});
 });
 
-exports.api = functions.region('us-europe-west1').https.onRequest(app);
+app.post('/signup', (req, res) => {
+	const newUser = {
+		email: req.body.email,
+		password: req.body.password,
+		confirmPassword: req.body.confirmPassword,
+		handle: req.body.handle
+	};
+
+	let token, user_id;
+	db
+		.doc(`/users/${newUser.handle}`)
+		.get()
+		.then((doc) => {
+			if (doc.exists) {
+				return res.status(400).json({ handle: 'This handle is already taken.' });
+			} else {
+				return firebase.auth().createUserWithEmailAndPassword(newUser.email, newUser.password);
+			}
+		})
+		.then((data) => {
+			user_id = data.user.uid;
+			return data.user.getIdToken();
+		})
+		.then((tokenv) => {
+			token = tokenv;
+			const userCredentials = {
+				handle: newUser.handle,
+				email: newUser.email,
+				created_at: new Date().toISOString(),
+				user_id: user_id
+			};
+			return db.doc(`/users/${newUser.handle}`).set(userCredentials);
+		})
+		.then(() => {
+			return res.status(201).json({ token });
+		})
+		.catch((err) => {
+			console.error(err);
+			res.status(500).json({ error: err.code });
+		});
+});
+
+exports.api = functions.https.onRequest(app);
