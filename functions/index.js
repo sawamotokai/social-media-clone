@@ -20,6 +20,32 @@ firebase.initializeApp(firebaseConfig);
 
 const db = admin.firestore();
 
+const FBAuth = (req, res, next) => {
+	let idToken;
+	if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+		idToken = req.headers.authorization.split('Bearer ')[1];
+	} else {
+		console.error('No token found');
+		return res.status(403).json({ error: 'Unauthorized.' });
+	}
+	admin
+		.auth()
+		.verifyIdToken(idToken)
+		.then((decodedToken) => {
+			req.user = decodedToken;
+			console.log(decodedToken);
+			return db.collection('users').where('user_id', '==', req.user.uid).limit(1).get();
+		})
+		.then((data) => {
+			req.user.handle = data.docs[0].data().handle;
+			return next();
+		})
+		.catch((err) => {
+			console.error('Error while verifying token ', err);
+			return res.status(403).json(err);
+		});
+};
+
 // get from database
 app.get('/screams', (req, res) => {
 	admin
@@ -45,10 +71,10 @@ app.get('/screams', (req, res) => {
 //
 
 // create scream
-app.post('/scream', (req, res) => {
+app.post('/scream', FBAuth, (req, res) => {
 	const newScream = {
 		body: req.body.body,
-		user_handle: req.body.user_handle,
+		user_handle: req.user.handle,
 		created_at: new Date().toISOString()
 	};
 	admin
